@@ -1,4 +1,4 @@
-package com.example.criteriaeligibilitycheckerservice;
+package com.example.eligibility;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

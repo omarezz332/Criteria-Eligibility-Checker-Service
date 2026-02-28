@@ -1,4 +1,4 @@
-package com.example.criteriaeligibilitycheckerservice;
+package com.example.eligibility;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
