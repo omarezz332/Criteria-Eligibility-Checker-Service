@@ -1,4 +1,4 @@
-package com.example.eligibility;
+package com.eligibility;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
