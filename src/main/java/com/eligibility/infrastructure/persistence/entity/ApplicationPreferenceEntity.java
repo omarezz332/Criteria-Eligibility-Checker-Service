@@ -55,7 +55,7 @@ public class ApplicationPreferenceEntity {
     @Column(name = "lottery_id", nullable = false, updatable = false)
     private UUID lotteryId;
 
-    @Column(name = "lottery_rank_mark", nullable = false, precision = 5, scale = 2)
+    @Column(name = "lottery_rank_mark", nullable = false)
     private double lotteryRankMark;
 
     @Column(name = "preference_order_num", nullable = false)
