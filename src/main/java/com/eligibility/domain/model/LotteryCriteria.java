@@ -1,6 +1,7 @@
 package com.eligibility.domain.model;
 
 import com.eligibility.domain.enums.CriteriaType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ public record LotteryCriteria(UUID id, UUID lotteryId, CriteriaType criteriaType
     /**
      * Use when the criteria value represents a number (AGE_MIN, AGE_MAX, MIN_RANK_MARK)
      */
+    @JsonIgnore
     public double getValueAsDouble() {
         try {
             return Double.parseDouble(criteriaValue);
@@ -29,6 +31,7 @@ public record LotteryCriteria(UUID id, UUID lotteryId, CriteriaType criteriaType
     /**
      * Use when the criteria value represents a boolean (HAS_DISABILITY)
      */
+    @JsonIgnore
     public boolean getValueAsBoolean() {
         return Boolean.parseBoolean(criteriaValue);
     }
