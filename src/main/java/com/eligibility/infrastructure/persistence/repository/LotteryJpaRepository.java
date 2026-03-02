@@ -36,4 +36,6 @@ public interface LotteryJpaRepository extends JpaRepository<LotteryEntity, UUID>
      */
     @Query("SELECT DISTINCT l FROM LotteryEntity l LEFT JOIN FETCH l.criteria WHERE l.status = :status")
     List<LotteryEntity> findAllByStatusWithCriteria(LotteryStatus status);
+
+    boolean existsByName(String name);
 }

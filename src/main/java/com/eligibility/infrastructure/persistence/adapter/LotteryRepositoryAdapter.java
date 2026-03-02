@@ -68,6 +68,11 @@ public class LotteryRepositoryAdapter implements LotteryRepository {
     }
 
     @Override
+    public boolean existsByName(String name) {
+        return jpaRepository.existsByName(name);
+    }
+
+    @Override
     @CacheEvict(value = "active-lotteries", allEntries = true)
     public Lottery updateStatus(UUID id, LotteryStatus newStatus) {
         LotteryEntity lotteryEntity = jpaRepository.findById(id)

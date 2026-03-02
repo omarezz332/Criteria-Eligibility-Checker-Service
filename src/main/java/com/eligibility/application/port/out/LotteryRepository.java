@@ -46,4 +46,6 @@ public interface LotteryRepository {
      * Must evict the active lotteries cache after update.
      */
     Lottery updateStatus(UUID id, LotteryStatus newStatus);
+
+    boolean existsByName(String name);
 }

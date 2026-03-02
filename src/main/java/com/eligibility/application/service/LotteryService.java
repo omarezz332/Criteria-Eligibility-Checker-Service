@@ -64,6 +64,10 @@ public class LotteryService implements
             throw new IllegalArgumentException("Lottery name must not be blank");
         }
 
+        if (lotteryRepository.existsByName(command.name().trim())) {
+            throw new IllegalArgumentException("A lottery with name '" + command.name().trim() + "' already exists");
+        }
+
         Lottery lottery = new Lottery(
                 UUID.randomUUID(),
                 command.name().trim(),
