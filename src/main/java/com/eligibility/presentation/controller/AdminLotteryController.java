@@ -49,11 +49,12 @@ public class AdminLotteryController {
     }
 
     /**
-     * POST /api/admin/lotteries/{lotteryId}/criteria
-     * Add eligibility criteria to an existing lottery.
+     * PUT /api/admin/lotteries/{lotteryId}/criteria
+     * Replace the full criteria set for an existing lottery.
+     * Wipes all existing criteria and inserts the new list.
      */
-    @PostMapping("/{lotteryId}/criteria")
-    public ResponseEntity<List<CriteriaResponse>> addCriteria(
+    @PutMapping("/{lotteryId}/criteria")
+    public ResponseEntity<List<CriteriaResponse>> setCriteria(
             @PathVariable UUID lotteryId,
             @Valid @RequestBody AddCriteriaRequest request
     ) {
@@ -64,7 +65,7 @@ public class AdminLotteryController {
         List<CriteriaResponse> response = saved.stream()
                 .map(c -> new CriteriaResponse(c.id(), c.criteriaType().name(), c.criteriaValue()))
                 .toList();
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{lotteryId}/status")

@@ -94,6 +94,10 @@ public class LotteryService implements
         lotteryRepository.findById(lotteryId)
                 .orElseThrow(() -> new LotteryNotFoundException(lotteryId));
 
+        // Replace all: wipe existing criteria then insert the new full set
+        criteriaRepository.deleteByLotteryId(lotteryId);
+        log.info("Deleted existing criteria for lottery: {}", lotteryId);
+
         List<LotteryCriteria> criteriaList = new ArrayList<>();
         for (AddCriteriaCommand cmd : commands) {
             criteriaList.add(buildCriteria(lotteryId, cmd));
