@@ -1,5 +1,7 @@
 package com.eligibility.application.port.out;
 
+import com.eligibility.domain.model.Lottery;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +32,6 @@ public interface EmailNotificationPort {
             UUID applicantId,
             String recipientEmail,
             String applicantName,
-            List<String> lotteryNames
+            List<Lottery> lotteryNames
     );
 }

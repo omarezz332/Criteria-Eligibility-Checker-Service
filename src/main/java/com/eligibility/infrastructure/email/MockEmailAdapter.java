@@ -1,6 +1,7 @@
 package com.eligibility.infrastructure.email;
 
 import com.eligibility.application.port.out.EmailNotificationPort;
+import com.eligibility.domain.model.Lottery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -25,9 +26,9 @@ public class MockEmailAdapter implements EmailNotificationPort {
             UUID applicantId,
             String recipientEmail,
             String applicantName,
-            List<String> lotteryNames
+            List<Lottery> lotteryNames
     ) {
         log.info("[MOCK EMAIL] To: {} | Applicant: {} ({}) | Lotteries: {}",
-                recipientEmail, applicantName, applicantId, lotteryNames);
+                recipientEmail, applicantName, applicantId, lotteryNames.size());
     }
 }
