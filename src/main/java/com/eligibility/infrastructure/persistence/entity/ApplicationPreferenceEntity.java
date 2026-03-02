@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -64,15 +63,6 @@ public class ApplicationPreferenceEntity {
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
-    /**
-     * Optimistic lock version column.
-     * JPA manages this automatically — never set it manually.
-     * Starts at 0, increments on every update.
-     */
-    @Version
-    @Column(name = "version", nullable = false)
-    private int version;
-
     protected ApplicationPreferenceEntity() {
     }
 
@@ -116,7 +106,4 @@ public class ApplicationPreferenceEntity {
         return createdDate;
     }
 
-    public int getVersion() {
-        return version;
-    }
 }

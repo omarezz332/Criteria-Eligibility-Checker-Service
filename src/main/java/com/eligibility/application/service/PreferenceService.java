@@ -6,14 +6,16 @@ import com.eligibility.application.port.in.SubmitPreferenceUseCase;
 import com.eligibility.application.port.out.ApplicantRepository;
 import com.eligibility.application.port.out.LotteryRepository;
 import com.eligibility.application.port.out.PreferenceRepository;
-import com.eligibility.domain.exception.*;
+import com.eligibility.domain.exception.ApplicantNotFoundException;
+import com.eligibility.domain.exception.DuplicatePreferenceException;
+import com.eligibility.domain.exception.IneligibleLotteryException;
+import com.eligibility.domain.exception.LotteryNotFoundException;
 import com.eligibility.domain.model.ApplicantProfile;
 import com.eligibility.domain.model.ApplicationPreference;
 import com.eligibility.domain.model.Lottery;
 import com.eligibility.domain.service.EligibilityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,57 +53,46 @@ public class PreferenceService implements SubmitPreferenceUseCase, GetApplicantP
     public List<ApplicationPreference> submitPreferences(SubmitPreferenceCommand command) {
         log.info("Processing preference submission for applicant: {}", command.applicantId());
 
-        try {
-            // ------------------------------------------------------------------
-            // Step 1: Load applicant — throws if not found
-            // ------------------------------------------------------------------
-            ApplicantProfile applicant = applicantRepository.findById(command.applicantId())
-                    .orElseThrow(() -> new ApplicantNotFoundException(command.applicantId()));
-            // ------------------------------------------------------------------
-            // Step 2: Calculate rank mark once — used in re-validation + storage
-            // ------------------------------------------------------------------
+        // ------------------------------------------------------------------
+        // Step 1: Load applicant — throws if not found
+        // ------------------------------------------------------------------
+        ApplicantProfile applicant = applicantRepository.findById(command.applicantId())
+                .orElseThrow(() -> new ApplicantNotFoundException(command.applicantId()));
+        // ------------------------------------------------------------------
+        // Step 2: Calculate rank mark once — used in re-validation + storage
+        // ------------------------------------------------------------------
+        double rankMark = applicant.calculateRankMark();
+        // ------------------------------------------------------------------
+        // Step 3: Validate the preference list structure (before hitting DB)
+        // ------------------------------------------------------------------
+        validatePreferenceListStructure(command);
+        // ------------------------------------------------------------------
+        // Step 4: Re-validate eligibility server-side for every lottery
+        //         Load each lottery and check ALL its criteria
+        // ------------------------------------------------------------------
+        List<Lottery> resolvedLotteries = resolveAndValidateLotteries(
+                command, applicant, rankMark
+        );
+        // ------------------------------------------------------------------
+        // Step 5: Delete existing preferences for this applicant
+        //         (resubmission replaces — does not append)
+        // ------------------------------------------------------------------
+        preferenceRepository.deleteAllByApplicantId(command.applicantId());
+        log.debug("Cleared existing preferences for applicant: {}", command.applicantId());
 
-            double rankMark = applicant.calculateRankMark();
-            // ------------------------------------------------------------------
-            // Step 3: Validate the preference list structure (before hitting DB)
-            // ------------------------------------------------------------------
-            validatePreferenceListStructure(command);
-            // ------------------------------------------------------------------
-            // Step 4: Re-validate eligibility server-side for every lottery
-            //         Load each lottery and check ALL its criteria
-            // ------------------------------------------------------------------
-            List<Lottery> resolvedLotteries = resolveAndValidateLotteries(
-                    command, applicant, rankMark
-            );
-            // ------------------------------------------------------------------
-            // Step 5: Delete existing preferences for this applicant
-            //         (resubmission replaces — does not append)
-            // ------------------------------------------------------------------
-            preferenceRepository.deleteAllByApplicantId(command.applicantId());
-            log.debug("Cleared existing preferences for applicant: {}", command.applicantId());
+        // ------------------------------------------------------------------
+        // Step 6: Build and save new preferences atomically
+        // ------------------------------------------------------------------
+        List<ApplicationPreference> preferences = buildPreferences(command, rankMark);
+        List<ApplicationPreference> savedPreferences = preferenceRepository.saveAll(preferences);
 
-            // ------------------------------------------------------------------
-            // Step 6: Build and save new preferences atomically
-            // ------------------------------------------------------------------
-            List<ApplicationPreference> preferences = buildPreferences(
-                    command, rankMark
-            );
-            List<ApplicationPreference> savedPreferences = preferenceRepository.saveAll(preferences);
+        // ------------------------------------------------------------------
+        // Step 7: Fire async email — OUTSIDE transaction control
+        //         Runs after transaction commits, never blocks the response
+        // ------------------------------------------------------------------
+        fireConfirmationEmail(applicant, resolvedLotteries);
 
-            // ------------------------------------------------------------------
-            // Step 7: Fire async email — OUTSIDE transaction control
-            //         Runs after transaction commits, never blocks the response
-            // ------------------------------------------------------------------
-
-            fireConfirmationEmail(applicant, resolvedLotteries);
-
-            return savedPreferences;
-
-        } catch (OptimisticLockingFailureException e) {
-            log.warn("Optimistic lock conflict for applicant: {}", command.applicantId());
-            throw new ConcurrentPreferenceUpdateException(command.applicantId());
-
-        }
+        return savedPreferences;
     }
 
     @Override
@@ -137,7 +128,7 @@ public class PreferenceService implements SubmitPreferenceUseCase, GetApplicantP
 
         List<Lottery> resolvedLotteries = new ArrayList<>();
         for (PreferenceEntry preference : command.preferences()) {
-            Lottery lottery = lotteryRepository.findById(preference.lotteryId())
+            Lottery lottery = lotteryRepository.findByIdWithCriteria(preference.lotteryId())
                     .orElseThrow(() -> new LotteryNotFoundException(preference.lotteryId()));
             boolean eligible = eligibilityEngine.isEligible(applicant, rankMark, lottery);
             if (!eligible) {
