@@ -54,6 +54,11 @@ public class LotteryRepositoryAdapter implements LotteryRepository {
         return jpaRepository.findById(id).map(this::toDomainWithoutCriteria);
     }
 
+    @Override
+    public Optional<Lottery> findByIdWithCriteria(UUID id) {
+        return jpaRepository.findById(id).map(this::toDomainWithCriteria);
+    }
+
     // called on every single eligibility check.
 
     @Override

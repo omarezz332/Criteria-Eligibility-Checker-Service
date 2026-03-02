@@ -29,7 +29,11 @@ public interface LotteryRepository {
      * Used for admin operations (status updates, etc.).
      */
     Optional<Lottery> findById(UUID id);
-
+    /**
+     * Find a lottery by ID — with criteria.
+     * Used for admin operations (status updates, etc.).
+     */
+    Optional<Lottery> findByIdWithCriteria(UUID id);
     /**
      * Load ALL active lotteries with their full criteria list.
      * <p>
