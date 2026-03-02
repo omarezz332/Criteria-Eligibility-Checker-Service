@@ -1,4 +1,4 @@
-package com.eligibility.application.service;
+package com.eligibility.domain.service;
 
 import com.eligibility.domain.model.ApplicantProfile;
 import com.eligibility.domain.model.Lottery;
@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * The core eligibility evaluation engine.
@@ -31,7 +30,6 @@ public class EligibilityEngine {
     public boolean isEligible(ApplicantProfile applicant, double rankMark, Lottery lottery) {
         List<LotteryCriteria> criteriaList = lottery.criteria();
         if (criteriaList.isEmpty()) {
-            // A lottery with no criteria is open to everyone
             log.debug("Lottery [{}] has no criteria — applicant [{}] is eligible by default",
                     lottery.id(), applicant.id());
             return true;
@@ -41,15 +39,13 @@ public class EligibilityEngine {
             if (!passes) {
                 log.debug("Applicant [{}] FAILED criteria [{} = {}] for Lottery [{}]",
                         applicant.id(), criteria.criteriaType(),
-                        criteria.criteriaType(), lottery.id());
-                return false;  // fail fast — no need to check the rest
+                        criteria.criteriaValue(), lottery.id());
+                return false;
             }
         }
-
         log.debug("Applicant [{}] PASSED all criteria for Lottery [{}]",
                 applicant.id(), lottery.id());
         return true;
-
     }
 
     private boolean evaluateSingleCriteria(ApplicantProfile applicant,
@@ -60,10 +56,8 @@ public class EligibilityEngine {
             case AGE_MAX -> applicant.age() <= (int) criteria.getValueAsDouble();
             case GENDER -> applicant.gender().name().equalsIgnoreCase(criteria.criteriaValue());
             case COUNTRY -> applicant.country().equalsIgnoreCase(criteria.criteriaValue());
-            case NATIONALITY -> applicant.nationality()
-                    .equalsIgnoreCase(criteria.criteriaValue());
-            case MARITAL_STATUS -> applicant.maritalStatus().name()
-                    .equalsIgnoreCase(criteria.criteriaValue());
+            case NATIONALITY -> applicant.nationality().equalsIgnoreCase(criteria.criteriaValue());
+            case MARITAL_STATUS -> applicant.maritalStatus().name().equalsIgnoreCase(criteria.criteriaValue());
             case HAS_DISABILITY -> applicant.hasDisability() == criteria.getValueAsBoolean();
             case MIN_RANK_MARK -> rankMark >= criteria.getValueAsDouble();
         };

@@ -10,6 +10,7 @@ import com.eligibility.domain.exception.*;
 import com.eligibility.domain.model.ApplicantProfile;
 import com.eligibility.domain.model.ApplicationPreference;
 import com.eligibility.domain.model.Lottery;
+import com.eligibility.domain.service.EligibilityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;

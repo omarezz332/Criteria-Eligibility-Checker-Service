@@ -6,6 +6,7 @@ import com.eligibility.application.port.out.LotteryRepository;
 import com.eligibility.domain.exception.ApplicantNotFoundException;
 import com.eligibility.domain.model.ApplicantProfile;
 import com.eligibility.domain.model.Lottery;
+import com.eligibility.domain.service.EligibilityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+
 
 /**
  * Application service: checks eligibility of an applicant across all active lotteries.
