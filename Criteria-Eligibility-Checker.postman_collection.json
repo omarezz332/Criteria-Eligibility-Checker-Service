@@ -1,0 +1,515 @@
+{
+  "info": {
+    "name": "Criteria Eligibility Checker Service",
+    "description": "API collection for the Criteria Eligibility Checker Service.\n\nTypical flow:\n1. [Admin] Create a lottery\n2. [Admin] Add eligibility criteria to the lottery\n3. Register an applicant\n4. Check applicant eligibility\n5. Submit applicant preferences\n6. Get applicant preferences",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "lotteryId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string",
+      "description": "Populated automatically by the 'Create Lottery' test script"
+    },
+    {
+      "key": "applicantId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string",
+      "description": "Populated automatically by the 'Register Applicant' test script"
+    }
+  ],
+  "item": [
+    {
+      "name": "Admin — Lotteries",
+      "description": "Admin endpoints for creating and managing lotteries and their eligibility criteria.",
+      "item": [
+        {
+          "name": "Create Lottery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('lotteryId', body.id);",
+                  "    console.log('lotteryId set to:', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Affordable Housing Lottery 2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/lotteries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "lotteries"
+              ]
+            },
+            "description": "Create a new lottery. Starts ACTIVE by default.\n\nThe test script automatically saves the returned `id` into the `lotteryId` collection variable."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"name\": \"Affordable Housing Lottery 2026\",\n  \"status\": \"ACTIVE\",\n  \"createdDate\": \"2026-03-02T09:00:00\"\n}"
+            },
+            {
+              "name": "400 Bad Request — Duplicate name",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 400,\n  \"message\": \"A lottery with name 'Affordable Housing Lottery 2026' already exists\",\n  \"timestamp\": \"2026-03-02T09:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Criteria to Lottery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"criteria\": [\n    { \"criteriaType\": \"AGE_MIN\",       \"criteriaValue\": \"25\"     },\n    { \"criteriaType\": \"AGE_MAX\",       \"criteriaValue\": \"55\"     },\n    { \"criteriaType\": \"GENDER\",        \"criteriaValue\": \"MALE\"   },\n    { \"criteriaType\": \"NATIONALITY\",   \"criteriaValue\": \"Egyptian\" },\n    { \"criteriaType\": \"MARITAL_STATUS\",\"criteriaValue\": \"MARRIED\" },\n    { \"criteriaType\": \"HAS_DISABILITY\",\"criteriaValue\": \"false\"  },\n    { \"criteriaType\": \"MIN_RANK_MARK\", \"criteriaValue\": \"5\"      }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/lotteries/{{lotteryId}}/criteria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "lotteries",
+                "{{lotteryId}}",
+                "criteria"
+              ]
+            },
+            "description": "Add eligibility criteria to an existing lottery. Multiple criteria can be submitted in one request.\n\n**Supported `criteriaType` values:**\n- `AGE_MIN`        — minimum age, numeric (e.g. `\"25\"`)\n- `AGE_MAX`        — maximum age, numeric (e.g. `\"60\"`)\n- `MIN_RANK_MARK`  — minimum rank mark, numeric (e.g. `\"40\"`)\n- `HAS_DISABILITY` — `\"true\"` or `\"false\"`\n- `GENDER`         — `\"MALE\"` or `\"FEMALE\"`\n- `COUNTRY`        — free text (e.g. `\"Egypt\"`)\n- `NATIONALITY`    — free text (e.g. `\"Egyptian\"`)\n- `MARITAL_STATUS` — `\"SINGLE\"`, `\"MARRIED\"`, `\"DIVORCED\"`, `\"WIDOWED\"`"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000001\", \"criteriaType\": \"AGE_MIN\",       \"criteriaValue\": \"25\"      },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000002\", \"criteriaType\": \"AGE_MAX\",       \"criteriaValue\": \"55\"      },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000003\", \"criteriaType\": \"GENDER\",        \"criteriaValue\": \"MALE\"    },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000004\", \"criteriaType\": \"NATIONALITY\",   \"criteriaValue\": \"Egyptian\" },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000005\", \"criteriaType\": \"MARITAL_STATUS\",\"criteriaValue\": \"MARRIED\" },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000006\", \"criteriaType\": \"HAS_DISABILITY\",\"criteriaValue\": \"false\"   },\n  { \"id\": \"aaaaaaaa-0000-0000-0000-000000000007\", \"criteriaType\": \"MIN_RANK_MARK\", \"criteriaValue\": \"5\"       }\n]"
+            },
+            {
+              "name": "404 Not Found — Lottery not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 404,\n  \"message\": \"Lottery not found with id: f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"timestamp\": \"2026-03-02T09:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Lottery Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"NOT_ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/lotteries/{{lotteryId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "lotteries",
+                "{{lotteryId}}",
+                "status"
+              ]
+            },
+            "description": "Update a lottery's status.\n\n**Accepted `status` values:** `ACTIVE`, `NOT_ACTIVE`\n\nSetting to `NOT_ACTIVE` evicts the active-lotteries cache and excludes this lottery from future eligibility checks."
+          },
+          "response": [
+            {
+              "name": "200 OK — Status updated",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"name\": \"Affordable Housing Lottery 2026\",\n  \"status\": \"NOT_ACTIVE\",\n  \"createdDate\": \"2026-03-02T09:00:00\"\n}"
+            },
+            {
+              "name": "404 Not Found — Lottery not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 404,\n  \"message\": \"Lottery not found with id: f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"timestamp\": \"2026-03-02T09:00:00\"\n}"
+            },
+            {
+              "name": "400 Bad Request — Invalid status value",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 400,\n  \"message\": \"Invalid status: 'UNKNOWN'. Accepted: ACTIVE, NOT_ACTIVE\",\n  \"timestamp\": \"2026-03-02T09:00:00\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Applicants",
+      "description": "Endpoints for registering applicant profiles.",
+      "item": [
+        {
+          "name": "Register Applicant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('applicantId', body.id);",
+                  "    console.log('applicantId set to:', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Hassan\",\n  \"age\": 30,\n  \"gender\": \"MALE\",\n  \"country\": \"Egypt\",\n  \"nationality\": \"Egyptian\",\n  \"maritalStatus\": \"MARRIED\",\n  \"hasDisability\": false,\n  \"disabilityName\": null,\n  \"educationLevel\": \"BSC\",\n  \"careerYears\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applicants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applicants"
+              ]
+            },
+            "description": "Register a new applicant. The server calculates and returns a `rankMark`.\n\n**Field constraints:**\n- `age`: 18–100\n- `gender`: `MALE` | `FEMALE`\n- `maritalStatus`: `SINGLE` | `MARRIED` | `DIVORCED` | `WIDOWED`\n- `educationLevel`: `NONE` | `DIPLOMA` | `BSC` | `MSC` | `PHD`\n- `careerYears`: >= 0\n- `disabilityName`: required only when `hasDisability` is `true`\n\nThe test script automatically saves the returned `id` into the `applicantId` collection variable."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"name\": \"Ahmed Hassan\",\n  \"age\": 30,\n  \"gender\": \"MALE\",\n  \"country\": \"Egypt\",\n  \"nationality\": \"Egyptian\",\n  \"maritalStatus\": \"MARRIED\",\n  \"hasDisability\": false,\n  \"disabilityName\": null,\n  \"educationLevel\": \"BSC\",\n  \"careerYears\": 7,\n  \"rankMark\": 72.5,\n  \"createdDate\": \"2026-03-02T10:00:00\"\n}"
+            },
+            {
+              "name": "400 Bad Request — Validation failure",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 400,\n  \"message\": \"Validation failed\",\n  \"errors\": [\"age must be at least 18\", \"name must not be blank\"],\n  \"timestamp\": \"2026-03-02T10:00:00\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "description": "Endpoints for eligibility checks and managing applicant preferences.",
+      "item": [
+        {
+          "name": "Check Eligibility",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicantId}}/eligibility",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicantId}}",
+                "eligibility"
+              ]
+            },
+            "description": "Check which active lotteries the applicant qualifies for based on their profile.\n\nNo request body needed — identification is via the `applicantId` path variable.\n\nReturns 200 with the applicant's rank mark and the list of eligible lotteries. An empty list is a valid result."
+          },
+          "response": [
+            {
+              "name": "200 OK — Eligible lotteries",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"applicantId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"rankMark\": 72.5,\n  \"eligibleLotteries\": [\n    {\n      \"id\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n      \"name\": \"Affordable Housing Lottery 2026\",\n      \"status\": \"ACTIVE\",\n      \"createdDate\": \"2026-03-02T09:00:00\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 OK — No eligible lotteries",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"applicantId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"rankMark\": 20.0,\n  \"eligibleLotteries\": []\n}"
+            },
+            {
+              "name": "404 Not Found — Applicant not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 404,\n  \"message\": \"Applicant not found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"timestamp\": \"2026-03-02T10:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit Preferences",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preferences\": [\n    { \"lotteryId\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\", \"preferenceOrderNum\": 1 },\n    { \"lotteryId\": \"a9b8c7d6-e5f4-3210-abcd-012345678901\", \"preferenceOrderNum\": 2 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicantId}}/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicantId}}",
+                "preferences"
+              ]
+            },
+            "description": "Submit the applicant's ordered preference list. Resubmitting replaces the existing list entirely.\n\nOnly lotteries the applicant is eligible for can be submitted.\n\n**Possible errors:**\n- `404` — applicant or lottery not found\n- `409` — concurrent update conflict (retry)\n- `422` — lottery is not eligible for this applicant"
+          },
+          "response": [
+            {
+              "name": "201 Created — Preferences saved",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"applicantId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"preferences\": [\n    {\n      \"id\": \"11223344-5566-7788-99aa-bbccddeeff00\",\n      \"lotteryId\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n      \"rankMark\": 72.5,\n      \"preferenceOrderNum\": 1,\n      \"createdDate\": \"2026-03-02T10:05:00\"\n    },\n    {\n      \"id\": \"aabbccdd-eeff-0011-2233-445566778899\",\n      \"lotteryId\": \"a9b8c7d6-e5f4-3210-abcd-012345678901\",\n      \"rankMark\": 72.5,\n      \"preferenceOrderNum\": 2,\n      \"createdDate\": \"2026-03-02T10:05:00\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found — Lottery not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 404,\n  \"message\": \"Lottery not found with id: f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"timestamp\": \"2026-03-02T10:00:00\"\n}"
+            },
+            {
+              "name": "409 Conflict — Concurrent update",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 409,\n  \"message\": \"Concurrent update conflict. Please retry.\",\n  \"timestamp\": \"2026-03-02T10:00:00\"\n}"
+            },
+            {
+              "name": "422 Unprocessable Entity — Ineligible lottery",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": 422,\n  \"message\": \"Applicant does not meet the criteria for lottery: f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n  \"timestamp\": \"2026-03-02T10:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicantId}}/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicantId}}",
+                "preferences"
+              ]
+            },
+            "description": "Retrieve the applicant's current preference list. Returns an empty list if no preferences have been submitted yet."
+          },
+          "response": [
+            {
+              "name": "200 OK — Preferences retrieved",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"applicantId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"preferences\": [\n    {\n      \"id\": \"11223344-5566-7788-99aa-bbccddeeff00\",\n      \"lotteryId\": \"f1e2d3c4-b5a6-7890-abcd-ef0987654321\",\n      \"rankMark\": 72.5,\n      \"preferenceOrderNum\": 1,\n      \"createdDate\": \"2026-03-02T10:05:00\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 OK — No preferences yet",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"applicantId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"preferences\": []\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
