@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.List;
  *   DuplicatePreferenceException        → 409 Conflict
  *   ConcurrentPreferenceUpdateException → 409 Conflict
  *   IllegalArgumentException            → 400 Bad Request
+ *   MethodArgumentTypeMismatchException → 400 Bad Request (invalid path/query param type)
  *   MethodArgumentNotValidException     → 400 Bad Request (field validation)
  *   Exception (fallback)                → 500 Internal Server Error
  */
@@ -88,6 +90,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(400, "INVALID_INPUT", ex.getMessage()));
+    }
+
+    // -------------------------------------------------------------------------
+    // 400 — Type mismatch (e.g. invalid UUID in path/query param)
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String message = String.format("Invalid value '%s' for parameter '%s'", ex.getValue(), ex.getName());
+        log.warn("Type mismatch: {}", message);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(400, "INVALID_PARAMETER", message));
     }
 
     // -------------------------------------------------------------------------
