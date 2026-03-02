@@ -8,7 +8,7 @@
         <version>4.0.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
+    <groupId>com.eligibility</groupId>
     <artifactId>Criteria-Eligibility-Checker-Service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Criteria-Eligibility-Checker-Service</name>
@@ -49,8 +49,8 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

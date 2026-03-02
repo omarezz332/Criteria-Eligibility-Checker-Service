@@ -56,6 +56,7 @@ public class LotteryService implements
     // -------------------------------------------------------------------------
 
     @Override
+    @Transactional
     public Lottery create(CreateLotteryCommand command) {
         log.info("Creating lottery: name={}", command.name());
 

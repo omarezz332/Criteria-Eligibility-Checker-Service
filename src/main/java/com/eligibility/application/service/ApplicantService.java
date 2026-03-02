@@ -8,10 +8,13 @@ import com.eligibility.domain.enums.MaritalStatus;
 import com.eligibility.domain.model.ApplicantProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Component
 public class ApplicantService implements RegisterApplicantUseCase {
     private static final Logger log = LoggerFactory.getLogger(ApplicantService.class);
     ApplicantRepository applicantRepository;
@@ -21,6 +24,7 @@ public class ApplicantService implements RegisterApplicantUseCase {
     }
 
     @Override
+    @Transactional
     public ApplicantProfile register(RegisterApplicantCommand command) {
         log.info("Registering new applicant: name={}", command.name());
 

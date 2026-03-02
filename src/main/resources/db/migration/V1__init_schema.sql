@@ -35,7 +35,7 @@ CREATE TABLE application_preference
     id                   UUID PRIMARY KEY       DEFAULT gen_random_uuid(),
     applicant_id         UUID          NOT NULL REFERENCES applicant_profile (id),
     lottery_id           UUID          NOT NULL REFERENCES lottery (id),
-    lottery_rank_mark    DECIMAL(5, 2) NOT NULL,
+    lottery_rank_mark    DOUBLE PRECISION NOT NULL,
     preference_order_num INT           NOT NULL,
     created_date         TIMESTAMP     NOT NULL DEFAULT now(),
     version              INT           NOT NULL DEFAULT 0, -- optimistic locking
