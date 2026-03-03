@@ -14,7 +14,7 @@ import com.eligibility.domain.model.ApplicantProfile;
 import com.eligibility.domain.model.ApplicationPreference;
 import com.eligibility.domain.model.Lottery;
 import com.eligibility.domain.service.EligibilityEngine;
-import com.eligibility.infrastructure.email.MockEmailAdapter;
+import com.eligibility.application.port.out.EmailNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,14 +40,14 @@ public class PreferenceService implements SubmitPreferenceUseCase, GetApplicantP
     private final LotteryRepository lotteryRepository;
     private final EligibilityEngine eligibilityEngine;
     private final PreferenceRepository preferenceRepository;
-    private final MockEmailAdapter mockEmailAdapter;
+    private final EmailNotificationPort emailNotificationPort;
 
-    public PreferenceService(ApplicantRepository applicantRepository, LotteryRepository lotteryRepository, EligibilityEngine eligibilityEngine, PreferenceRepository preferenceRepository, MockEmailAdapter mockEmailAdapter) {
+    public PreferenceService(ApplicantRepository applicantRepository, LotteryRepository lotteryRepository, EligibilityEngine eligibilityEngine, PreferenceRepository preferenceRepository, EmailNotificationPort emailNotificationPort) {
         this.applicantRepository = applicantRepository;
         this.lotteryRepository = lotteryRepository;
         this.eligibilityEngine = eligibilityEngine;
         this.preferenceRepository = preferenceRepository;
-        this.mockEmailAdapter = mockEmailAdapter;
+        this.emailNotificationPort = emailNotificationPort;
     }
 
     @Override
@@ -164,7 +164,7 @@ public class PreferenceService implements SubmitPreferenceUseCase, GetApplicantP
     }
 
     private void fireConfirmationEmail(ApplicantProfile applicant, List<Lottery> resolvedLotteries) {
-        mockEmailAdapter.sendPreferenceConfirmation(applicant.id(), "omar.ezz@gm.com",applicant.name(),resolvedLotteries);
+        emailNotificationPort.sendPreferenceConfirmation(applicant.id(), "omar.ezz@gm.com", applicant.name(), resolvedLotteries);
     }
 
 }

@@ -12,7 +12,7 @@ Hexagonal (Ports & Adapters) architecture with three layers:
 presentation/   →  controllers, mappers, DTOs
 application/    →  use cases, services, port interfaces
 domain/         →  models, enums, domain exceptions, EligibilityEngine
-infrastructure/ →  JPA entities, repository adapters, cache, async config
+infrastructure/ →  JPA entities, repository adapters, cache, Kafka producer/consumer
 ```
 
 Domain models are plain Java records with no JPA annotations. Adapters translate between domain models and JPA entities.
@@ -28,7 +28,8 @@ Domain models are plain Java records with no JPA annotations. Adapters translate
 | Database       | PostgreSQL                          |
 | Migrations     | Flyway                              |
 | Persistence    | Spring Data JPA / Hibernate         |
-| Caching        | Spring Cache (ConcurrentMapCache)   |
+| Caching        | Spring Cache + Redis (Lettuce)      |
+| Messaging      | Apache Kafka (KRaft mode)           |
 | Build          | Maven                               |
 
 ---
@@ -131,6 +132,8 @@ Submit body:
 
 Eligibility is re-validated server-side. Duplicate lottery IDs or order numbers are rejected (`409`). Submitting a non-eligible lottery returns `422`.
 
+After a successful submission, a `PreferenceConfirmationEvent` is published to the `preference.confirmation` Kafka topic. A consumer reads it and logs the simulated email notification.
+
 ---
 
 ### Admin Lotteries — `/api/admin/lotteries`
@@ -200,11 +203,14 @@ Managed by Flyway under `src/main/resources/db/migration/`:
 
 ## Running Locally
 
-**Prerequisites:** Java 17, PostgreSQL, Maven.
+**Prerequisites:** Java 17, Docker, Maven.
 
-1. Create a PostgreSQL database (default name: `taskOn`).
+1. Start all infrastructure services (PostgreSQL, Redis, Kafka):
+   ```bash
+   docker compose up -d
+   ```
 
-2. Update credentials in `src/main/resources/application.properties`:
+2. Update credentials in `src/main/resources/application.properties` if needed:
    ```properties
    spring.datasource.url=jdbc:postgresql://localhost:5432/taskOn
    spring.datasource.username=<your_user>
@@ -248,11 +254,79 @@ Flyway will apply all migrations automatically on startup.
 - Criteria replace-all: same delete+insert pattern in `LotteryService.addCriteria()`.
 - Cache eviction (`@CacheEvict(allEntries = true)`) fires inside the same transaction commit, so the cache is never invalidated before the write is durable.
 
-### Caching
+### Caching Strategy
 
-- Active lotteries and their criteria are cached under `active-lotteries` (Spring `ConcurrentMapCache`).
-- Cache is evicted on every lottery create, status update, or criteria replace — keeping reads stale-free in steady state.
-- Eligibility checks hit the cache after the first load; only admin operations cause a miss.
+#### Provider migration: ConcurrentMapCache → Redis
+
+| | ConcurrentMapCache (before) | Redis (after) |
+|-|----------------------------|---------------|
+| **Storage** | JVM heap | External Redis process |
+| **TTL** | None (lives forever or until evict) | 5 minutes per entry |
+| **Survives restart** | No — lost on every deploy | Yes — cache warm across restarts |
+| **Distributed** | No — each JVM has its own copy | Yes — shared across all instances |
+| **Memory risk** | Unbounded heap growth | Bounded by Redis `maxmemory` config |
+| **Serialization** | Java object reference | JSON (human-readable in `redis-cli`) |
+
+#### What is cached
+
+| Cache name | Cached value | Evicted when |
+|------------|-------------|--------------|
+| `active-lotteries` | `List<Lottery>` with all criteria | Lottery created, status changed, or criteria replaced |
+
+#### DB query reduction
+
+Every call to `POST /api/applications/{id}/eligibility` previously fired:
+1. `SELECT` applicant by ID
+2. `SELECT` all active lotteries + `JOIN` criteria
+
+With Redis caching, query 2 is eliminated on every request after the first load:
+
+```
+1st request:  applicant SELECT (DB) + lotteries SELECT (DB) → stored in Redis
+2nd–Nth:      applicant SELECT (DB) + lotteries served from Redis  ← 1 query saved per request
+```
+
+Under 25K concurrent eligibility checks, this means 25K lottery queries become 1 query (the cache warm), with all subsequent reads served from Redis in sub-millisecond time.
+
+#### Cache eviction flow
+
+```
+Admin: PUT /criteria  or  PATCH /status  or  POST /lotteries
+    → @CacheEvict(allEntries = true) fires on transaction commit
+    → Redis entry for "active-lotteries" is deleted
+    → Next eligibility check re-populates Redis from DB
+```
+
+Eviction is atomic with the write — it fires inside the same transaction commit, so the cache is never invalidated before the DB change is durable.
+
+### Async Notification via Kafka
+
+After a successful preference submission, an email confirmation is sent asynchronously through Kafka — the HTTP response is never delayed by notification logic.
+
+```
+PreferenceService.submitPreferences()
+    → EmailNotificationPort.sendPreferenceConfirmation()   ← port interface (application layer)
+        → KafkaEmailAdapter                                ← infrastructure adapter
+            → kafkaTemplate.send("preference.confirmation", event)
+                → Kafka broker
+                    → PreferenceConfirmationConsumer
+                        → log.info("[EMAIL] To: ... | Applicant: ... | Lotteries: ...")
+```
+
+**Hexagonal boundary:** `PreferenceService` depends only on `EmailNotificationPort`. It has no knowledge of Kafka, topics, or serialization. Swapping Kafka for SMTP or SES requires no application-layer change.
+
+**Event payload** (`PreferenceConfirmationEvent`):
+
+| Field | Type | Description |
+|---|---|---|
+| `applicantId` | UUID | For tracing |
+| `recipientEmail` | String | Destination address |
+| `applicantName` | String | Used in greeting |
+| `lotteryNames` | List\<String\> | Names only — keeps event lightweight |
+
+**Serialization:** the event is serialized to a JSON string by `ObjectMapper` in the producer and deserialized back in the consumer. Both sides use `StringSerializer` / `StringDeserializer` — no Spring Kafka JSON serializer dependency.
+
+---
 
 ### Query Design
 
